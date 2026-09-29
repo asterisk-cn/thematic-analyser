@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { store } from '../../store.svelte';
-  import { EXCERPT_MIME, LABEL_MIME } from '../../lib/dnd';
+  import { EXCERPT_MIME, LABEL_MIME, draggedIds, endDrag } from '../../lib/dnd';
 
   /**
    * ドロップ先。labelId は
@@ -14,7 +14,6 @@
 
   const accepts = (e: DragEvent) =>
     !!e.dataTransfer && (e.dataTransfer.types.includes(EXCERPT_MIME) || e.dataTransfer.types.includes(LABEL_MIME));
-  const ids = (e: DragEvent, mime: string) => (e.dataTransfer?.getData(mime) || '').split(',').filter(Boolean);
 </script>
 
 <div
@@ -34,13 +33,14 @@
     e.preventDefault();
     e.stopPropagation();
     over = false;
-    const exIds = ids(e, EXCERPT_MIME);
-    const lbIds = ids(e, LABEL_MIME);
+    const exIds = draggedIds(e, EXCERPT_MIME);
+    const lbIds = draggedIds(e, LABEL_MIME);
     if (exIds.length) store.assignLabel(exIds, labelId);
     if (lbIds.length && store.moveLabels(lbIds, labelId) > 0) {
       store.toast('ラベルを自分自身や配下のラベルの下には移動できません', 'error');
     }
     store.clearSelection();
+    endDrag();
   }}
 >
   {@render children()}

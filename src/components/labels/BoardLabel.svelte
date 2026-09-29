@@ -1,6 +1,7 @@
 <script lang="ts">
   import { store } from '../../store.svelte';
-  import { LABEL_MIME, startDrag } from '../../lib/dnd';
+  import { EXCERPT_MIME, LABEL_MIME, draggedIds, dragging, dropPlace, endDrag, startDrag } from '../../lib/dnd';
+  import { descendantIds } from '../../lib/labels';
   import type { LabelNode } from '../../lib/labels';
   import { CODE_LIMIT, type BoardFilter } from '../../lib/boardFilter';
   import ColorPicker from '../sidebar/ColorPicker.svelte';
@@ -35,13 +36,62 @@
   const shownCodes = $derived(showAll ? codes : codes.slice(0, CODE_LIMIT));
   const total = $derived(store.totalCounts.get(label.id) ?? 0);
   const visible = $derived(!filter || filter.visible.has(label.id));
+  /** ドラッグ中、見出しのどこに落とそうとしているか */
+  let place = $state<'before' | 'after' | 'inside' | null>(null);
+
+  function onHeadOver(e: DragEvent) {
+    const types = e.dataTransfer?.types ?? [];
+    const isLabel = types.includes(LABEL_MIME);
+    if (!isLabel && !types.includes(EXCERPT_MIME)) return;
+    e.stopPropagation();
+    // 自分自身や配下の中・前後には落とせない（preventDefault しない＝ドロップ不可）
+    if (isLabel && dragging.ids.some((id) => descendantIds(store.labels, id).has(label.id))) {
+      place = null;
+      return;
+    }
+    e.preventDefault();
+    // コードは中へ入れるだけ。ラベルは前・中・後
+    place = isLabel ? dropPlace(e, e.currentTarget as HTMLElement, true) : 'inside';
+  }
+
+  function onHeadDrop(e: DragEvent) {
+    const p = place;
+    place = null;
+    if (!p) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const exIds = draggedIds(e, EXCERPT_MIME);
+    const lbIds = draggedIds(e, LABEL_MIME);
+    if (exIds.length) store.assignLabel(exIds, label.id);
+    if (lbIds.length) {
+      const failed =
+        p === 'inside' ? store.moveLabels(lbIds, label.id) : store.placeLabels(lbIds, label.parentId, label.id, p);
+      if (failed) store.toast('ラベルを自分自身や配下のラベルの下には移動できません', 'error');
+    }
+    store.clearSelection();
+    endDrag();
+  }
+
   /** 検索中はすべて開いて見せる */
   const isCollapsed = $derived(filter ? false : collapsed);
 </script>
 
 {#if visible}
 <DropZone labelId={label.id} class="label-node depth-{Math.min(node.depth, 4)} {checked ? 'checked' : ''}">
-  <div class="label-head" style:--c={label.color} role="treeitem" aria-selected={checked} aria-expanded={!isCollapsed} tabindex="-1">
+  <div
+    class="label-head"
+    class:drop-before={place === 'before'}
+    class:drop-after={place === 'after'}
+    class:drop-inside={place === 'inside'}
+    style:--c={label.color}
+    role="treeitem"
+    aria-selected={checked}
+    aria-expanded={!isCollapsed}
+    tabindex="-1"
+    ondragover={onHeadOver}
+    ondragleave={(e) => !(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node) && (place = null)}
+    ondrop={onHeadDrop}
+  >
     <button class="twisty" onclick={() => (collapsed = !collapsed)} aria-label={isCollapsed ? '開く' : '閉じる'} disabled={!!filter}>
       {isCollapsed ? '▸' : '▾'}
     </button>
@@ -54,6 +104,7 @@
       tabindex="-1"
       ondragstart={(e) =>
         startDrag(e, LABEL_MIME, checked ? [...store.selLabels] : [label.id], (e.currentTarget as HTMLElement).closest('.label-head'))}
+      ondragend={endDrag}
       >⋮⋮</span
     >
     <textarea
@@ -82,9 +133,6 @@
         ></textarea>
       </label>
       <div class="detail-actions">
-        {#if label.parentId}
-          <button class="btn btn-small" onclick={() => store.moveLabel(label.id, null)}>トップレベルへ移動</button>
-        {/if}
         <button
           class="btn btn-small btn-danger"
           onclick={() => {

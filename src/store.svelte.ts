@@ -24,6 +24,26 @@ const STORAGE_KEY = 'thematic-analyser:v1';
 const MEDIA_EXT_AUDIO = /\.(mp3|wav|m4a|aac|ogg|oga|flac|opus|weba)$/i;
 const DEFAULT_NAME = '無題のプロジェクト';
 
+/** ids の要素を patch して取り出し、anchorId の前（後）へ差し込む。anchor が無ければ末尾へ */
+function reorder<T extends { id: string }>(
+  arr: T[],
+  ids: Set<string>,
+  anchorId: string | null,
+  place: 'before' | 'after',
+  patch: (x: T) => T,
+): T[] {
+  if (!ids.size) return arr;
+  const moving = arr.filter((x) => ids.has(x.id)).map(patch);
+  const rest = arr.filter((x) => !ids.has(x.id));
+  let at = rest.length;
+  if (anchorId && !ids.has(anchorId)) {
+    const i = rest.findIndex((x) => x.id === anchorId);
+    if (i >= 0) at = place === 'before' ? i : i + 1;
+  }
+  rest.splice(at, 0, ...moving);
+  return rest;
+}
+
 class AppStore {
   // ── 永続化されるプロジェクトデータ（イミュータブルに置き換える） ──
   name = $state(DEFAULT_NAME);
@@ -286,6 +306,19 @@ class AppStore {
     this.assignLabel(this.selExcerpts, label.id);
     this.clearSelection();
     return label;
+  }
+  /**
+   * ラベルを parentId の下の anchorId の前（後）へ差し込む。anchorId が null なら末尾。
+   * 自分自身や配下の下へ入ることになるものは動かさず、その数を返す
+   */
+  placeLabels(ids: string[], parentId: string | null, anchorId: string | null, place: 'before' | 'after') {
+    const ok = new Set(ids.filter((id) => !parentId || !descendantIds(this.labels, id).has(parentId)));
+    this.labels = reorder(this.labels, ok, anchorId, place, (l) => ({ ...l, parentId }));
+    return ids.length - ok.size;
+  }
+  /** コードにラベルを付け、そのラベル内で anchorId の前（後）へ並べる */
+  placeExcerpts(ids: string[], labelId: string | null, anchorId: string | null, place: 'before' | 'after') {
+    this.excerpts = reorder(this.excerpts, new Set(ids), anchorId, place, (e) => ({ ...e, labelId }));
   }
   /** 選択中のものを既存のラベルの下へ */
   moveSelection(target: string | null) {

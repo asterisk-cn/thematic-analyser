@@ -2927,3 +2927,39 @@ code {
 .pool-body .more-btn {
   margin-left: 16px;
 }
+
+/* 間への差し込み位置 */
+.board .label-head,
+.board-code {
+  position: relative;
+}
+
+.board .label-head.drop-before::after,
+.board .label-head.drop-after::after,
+.board-code.drop-before::after,
+.board-code.drop-after::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--shu);
+  border-radius: 1px;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--shu) 20%, transparent);
+}
+
+.board .label-head.drop-before::after,
+.board-code.drop-before::after {
+  top: -2px;
+}
+
+.board .label-head.drop-after::after,
+.board-code.drop-after::after {
+  bottom: -2px;
+}
+
+.board .label-head.drop-inside {
+  background: color-mix(in srgb, #f5c518 30%, transparent);
+  outline: 1px dashed var(--ink-3);
+}
