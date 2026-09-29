@@ -1,0 +1,12 @@
+node_modules
+dist
+.DS_Store
+
+# テスト用メディア
+public/__test__/
+
+# pnpm を使うため npm のロックファイルは管理しない
+package-lock.json
+
+# TypeScript のビルドキャッシュ
+*.tsbuildinfo
