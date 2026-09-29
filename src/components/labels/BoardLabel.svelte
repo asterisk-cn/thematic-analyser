@@ -8,6 +8,7 @@
   import BoardCode from './BoardCode.svelte';
   import BoardLabel from './BoardLabel.svelte';
   import DropZone from './DropZone.svelte';
+  import CommentThread from '../CommentThread.svelte';
 
   let {
     node,
@@ -21,6 +22,8 @@
   let adding = $state(false);
   let childName = $state('');
   let showAll = $state(false);
+  let commentsOpen = $state(false);
+  const commentCount = $derived(store.commentsByTarget.get(`l:${label.id}`)?.length ?? 0);
 
   // 「すべて開く／閉じる」に追従
   $effect(() => {
@@ -116,9 +119,25 @@
       aria-label="ラベル名"
     ></textarea>
     <span class="count" title="配下を含むコード数（直下 {codes.length}）">{total}</span>
+    <button
+      class="comment-btn"
+      class:has={commentCount > 0}
+      class:open={commentsOpen}
+      onclick={() => (commentsOpen = !commentsOpen)}
+      title={commentCount ? `コメント ${commentCount} 件` : 'コメントを付ける'}
+      aria-label="コメント"
+    >
+      💬{#if commentCount}<b>{commentCount}</b>{/if}
+    </button>
     <button class="icon-btn" title="子ラベルを追加" onclick={() => ((adding = true), (collapsed = false))}>＋</button>
     <button class="icon-btn" onclick={() => (open = !open)} title="詳細">⋯</button>
   </div>
+
+  {#if commentsOpen}
+    <div class="label-thread">
+      <CommentThread target={{ kind: 'label', labelId: label.id }} onclose={() => (commentsOpen = false)} />
+    </div>
+  {/if}
 
   {#if open}
     <div class="code-detail">

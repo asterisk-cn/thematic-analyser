@@ -14,6 +14,12 @@
   let fileInput: HTMLInputElement | undefined = $state();
   let follow = $state(true);
   let query = $state('');
+  /** コメント欄を開いている行 */
+  let commentSeg = $state<number | null>(null);
+  $effect(() => {
+    void doc?.id;
+    commentSeg = null;
+  });
   let pending = $state.raw<{ span: Span; x: number; y: number; text: string } | null>(null);
 
   const doc = $derived(store.activeDoc);
@@ -258,6 +264,10 @@
           selectedExcerptId={store.selectedExcerptId}
           {onseek}
           {onpick}
+          docId={doc.id}
+          commentCount={store.commentsByTarget.get(`s:${doc.id}:${r.idx}`)?.length ?? 0}
+          commentOpen={commentSeg === r.idx}
+          ontogglecomment={(i) => (commentSeg = commentSeg === i ? null : i)}
         />
       {:else}
         <div class="empty">「{query}」に一致する行はありません</div>

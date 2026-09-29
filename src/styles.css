@@ -2963,3 +2963,151 @@ code {
   background: color-mix(in srgb, #f5c518 30%, transparent);
   outline: 1px dashed var(--ink-3);
 }
+
+/* ───────── コメント ───────── */
+
+.seg-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.seg-thread {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 4px 0 6px;
+}
+
+.seg-notes {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+
+.comment-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: var(--r);
+  opacity: 0;
+  filter: grayscale(1);
+  transition: opacity 0.12s;
+  flex: none;
+}
+
+.comment-btn b {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.seg:hover .comment-btn,
+.label-head:hover .comment-btn,
+.comment-btn.has,
+.comment-btn.open,
+.comment-btn:focus-visible {
+  opacity: 1;
+}
+
+.comment-btn.has,
+.comment-btn.open {
+  filter: none;
+}
+
+.comment-btn.open {
+  background: var(--paper-2);
+}
+
+.comment-btn:hover {
+  background: var(--paper-2);
+}
+
+.board .label-head .comment-btn {
+  order: 6;
+  margin-top: 1px;
+}
+
+.label-thread {
+  margin: 2px 0 6px 44px;
+  max-width: 560px;
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--paper);
+  border-left: 3px solid var(--ink-3);
+  border-radius: 0 var(--r) var(--r) 0;
+  font-family: var(--sans);
+  animation: pop 0.14s ease-out;
+}
+
+.comment {
+  padding-bottom: 6px;
+  border-bottom: 1px dotted var(--rule);
+}
+
+.comment-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--ink);
+}
+
+.comment-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--ink-3);
+  margin-top: 2px;
+}
+
+.comment-meta button,
+.comment-actions button:not(.btn) {
+  font-size: 10.5px;
+  color: var(--ink-3);
+  text-decoration: underline;
+}
+
+.comment-meta button:hover,
+.comment-actions button:not(.btn):hover {
+  color: var(--ink);
+}
+
+.comment-input {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: var(--r);
+  background: var(--card);
+  padding: 5px 7px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  resize: vertical;
+  field-sizing: content;
+  min-height: 3.4em;
+}
+
+.comment-input:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.comment-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.comment-actions .pop-hint {
+  margin-right: auto;
+}

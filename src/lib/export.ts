@@ -1,4 +1,4 @@
-import type { Excerpt, ProjectFile } from '../types';
+import type { Comment, Excerpt, ProjectFile } from '../types';
 import { excerptTime, sortExcerpts, speakerOf } from './analysis';
 import { buildTree, pathText, type LabelNode } from './labels';
 import { fmtTime } from './time';
@@ -67,6 +67,14 @@ export function exportMarkdownReport(p: ProjectFile) {
     if (ex.memo) lines.push(`  - メモ: ${ex.memo}`);
   };
 
+  const comments = p.comments ?? [];
+  const commentLines = (cs: Comment[], indent = '') => {
+    for (const c of cs) {
+      const when = new Date(c.createdAt).toLocaleString('ja-JP');
+      lines.push(`${indent}> 💬 ${c.text.replace(/\n/g, `\n${indent}> `)}`, `${indent}> — ${when}`, '');
+    }
+  };
+
   const byLabel = new Map<string | null, Excerpt[]>();
   for (const e of sortExcerpts(p.excerpts, p.docs)) byLabel.set(e.labelId, [...(byLabel.get(e.labelId) ?? []), e]);
 
@@ -74,6 +82,7 @@ export function exportMarkdownReport(p: ProjectFile) {
     for (const n of nodes) {
       lines.push(`${'#'.repeat(Math.min(6, n.depth + 2))} ${n.label.name}`, '');
       if (n.label.description) lines.push(n.label.description, '');
+      commentLines(comments.filter((c) => c.target.kind === 'label' && c.target.labelId === n.label.id));
       const exs = byLabel.get(n.label.id) ?? [];
       exs.forEach(quote);
       if (exs.length) lines.push('');
@@ -88,6 +97,24 @@ export function exportMarkdownReport(p: ProjectFile) {
     lines.push('## ラベル未付与', '');
     sortExcerpts(loose, p.docs).forEach(quote);
     lines.push('');
+  }
+  const segComments = comments.filter((c) => c.target.kind === 'segment');
+  if (segComments.length) {
+    lines.push('## 書き起こしへのコメント', '');
+    for (const d of p.docs) {
+      const cs = segComments.filter((c) => c.target.kind === 'segment' && c.target.docId === d.id);
+      if (!cs.length) continue;
+      lines.push(`### ${d.name}`, '');
+      const bySeg = new Map<number, Comment[]>();
+      for (const c of cs) if (c.target.kind === 'segment') bySeg.set(c.target.seg, [...(bySeg.get(c.target.seg) ?? []), c]);
+      for (const [seg, list] of [...bySeg].sort((a, b) => a[0] - b[0])) {
+        const s = d.segments[seg];
+        if (!s) continue;
+        const meta = [s.start != null ? fmtTime(s.start + d.offset) : null, s.speaker].filter(Boolean).join(' · ');
+        lines.push(`- ${meta ? `[${meta}] ` : ''}${s.text}`, '');
+        commentLines(list, '  ');
+      }
+    }
   }
   download(`${safe(p.name)}_report.md`, lines.join('\n'), 'text/markdown');
 }

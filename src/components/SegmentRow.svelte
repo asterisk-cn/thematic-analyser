@@ -2,6 +2,7 @@
   import { highlightBackground, speakerColor, type Piece } from '../lib/analysis';
   import { fmtTime } from '../lib/time';
   import type { Excerpt, Label, Segment } from '../types';
+  import CommentThread from './CommentThread.svelte';
 
   let {
     seg,
@@ -12,6 +13,10 @@
     selectedExcerptId,
     onseek,
     onpick,
+    docId,
+    commentCount,
+    commentOpen,
+    ontogglecomment,
   }: {
     seg: Segment;
     idx: number;
@@ -21,13 +26,29 @@
     selectedExcerptId: string | null;
     onseek: (idx: number) => void;
     onpick: (exIds: string[]) => void;
+    docId: string;
+    commentCount: number;
+    commentOpen: boolean;
+    ontogglecomment: (idx: number) => void;
   } = $props();
 </script>
 
 <div class="seg" class:active data-row-idx={idx}>
-  <button class="seg-time" onclick={() => onseek(idx)} disabled={seg.start == null} tabindex="-1">
-    {seg.start == null ? '·' : fmtTime(seg.start)}
-  </button>
+  <div class="seg-side">
+    <button class="seg-time" onclick={() => onseek(idx)} disabled={seg.start == null} tabindex="-1">
+      {seg.start == null ? '·' : fmtTime(seg.start)}
+    </button>
+    <button
+      class="comment-btn"
+      class:has={commentCount > 0}
+      class:open={commentOpen}
+      onclick={() => ontogglecomment(idx)}
+      title={commentCount ? `コメント ${commentCount} 件` : 'コメントを付ける'}
+      aria-label="コメント"
+    >
+      💬{#if commentCount}<b>{commentCount}</b>{/if}
+    </button>
+  </div>
   <div class="seg-body">
     {#if seg.speaker}
       <span class="seg-speaker" style:color={speakerColor(seg.speaker)}>{seg.speaker}</span>
@@ -36,6 +57,11 @@
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <span class="seg-text" data-seg-idx={idx}>{#each pieces as p, i (i)}{#if p.exIds.length || p.pending}<span class="hl" class:pending={p.pending} class:sel={!!selectedExcerptId && p.exIds.includes(selectedExcerptId)} style:background-image={highlightBackground(p.colors)} onclick={() => p.exIds.length && onpick(p.exIds)}>{p.text}</span>{:else}{p.text}{/if}{/each}</span>
   </div>
+  {#if commentOpen}
+    <div class="seg-thread">
+      <CommentThread target={{ kind: 'segment', docId, seg: idx }} onclose={() => ontogglecomment(idx)} />
+    </div>
+  {/if}
   <div class="seg-notes">
     {#each notes as { ex, label, path } (ex.id)}
       <button

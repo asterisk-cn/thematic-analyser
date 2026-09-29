@@ -1,5 +1,5 @@
-import type { Excerpt, Focus, Label, MediaMeta, ProjectFile, Track, TranscriptDoc } from './types';
-import { UNLABELED } from './types';
+import type { Comment, CommentTarget, Excerpt, Focus, Label, MediaMeta, ProjectFile, Track, TranscriptDoc } from './types';
+import { UNLABELED, commentKey } from './types';
 import { buildTree, descendantIds, migrate } from './lib/labels';
 import { uid } from './lib/id';
 import { engine } from './lib/engine.svelte';
@@ -50,6 +50,7 @@ class AppStore {
   docs = $state.raw<TranscriptDoc[]>([]);
   labels = $state.raw<Label[]>([]);
   excerpts = $state.raw<Excerpt[]>([]);
+  comments = $state.raw<Comment[]>([]);
   mediaMeta = $state.raw<Record<string, MediaMeta>>({});
   activeDocId = $state<string | null>(null);
   page = $state<Page>('code');
@@ -66,6 +67,15 @@ class AppStore {
 
   // ── 派生値 ──
   activeDoc = $derived(this.docs.find((d) => d.id === this.activeDocId) ?? this.docs[0]);
+  /** 対象ごとのコメント（commentKey → 古い順） */
+  commentsByTarget = $derived.by(() => {
+    const m = new Map<string, Comment[]>();
+    for (const c of this.comments) {
+      const k = commentKey(c.target);
+      m.set(k, [...(m.get(k) ?? []), c]);
+    }
+    return m;
+  });
   labelMap = $derived(new Map(this.labels.map((l) => [l.id, l])));
   labelTree = $derived(buildTree(this.labels));
   /** 絞り込み中のラベルとその配下 */
@@ -101,6 +111,7 @@ class AppStore {
             docs: this.docs,
             labels: this.labels,
             excerpts: this.excerpts,
+            comments: this.comments,
             mediaMeta: this.mediaMeta,
             activeDocId: this.activeDocId,
             page: this.page,
@@ -129,6 +140,7 @@ class AppStore {
       const m = migrate(s);
       this.labels = m.labels;
       this.excerpts = m.excerpts;
+      this.comments = s.comments ?? [];
       this.mediaMeta = s.mediaMeta ?? {};
       this.activeDocId = s.activeDocId ?? null;
       this.page = s.page === 'label' ? 'label' : 'code';
@@ -164,6 +176,7 @@ class AppStore {
   removeDoc(id: string) {
     this.docs = this.docs.filter((d) => d.id !== id);
     this.excerpts = this.excerpts.filter((e) => e.docId !== id);
+    this.comments = this.comments.filter((c) => !(c.target.kind === 'segment' && c.target.docId === id));
     if (this.activeDocId === id) this.activeDocId = this.docs[0]?.id ?? null;
     this.syncExtent();
   }
@@ -199,6 +212,7 @@ class AppStore {
     const parentId = this.labelMap.get(id)?.parentId ?? null;
     this.labels = this.labels.filter((l) => l.id !== id).map((l) => (l.parentId === id ? { ...l, parentId } : l));
     this.excerpts = this.excerpts.map((e) => (e.labelId === id ? { ...e, labelId: parentId } : e));
+    this.comments = this.comments.filter((c) => !(c.target.kind === 'label' && c.target.labelId === id));
     if (this.focus === id) this.focus = null;
     if (this.selLabels.has(id)) this.selLabels = new Set([...this.selLabels].filter((x) => x !== id));
   }
@@ -215,6 +229,22 @@ class AppStore {
   deleteExcerpt(id: string) {
     this.excerpts = this.excerpts.filter((e) => e.id !== id);
     if (this.selectedExcerptId === id) this.selectedExcerptId = null;
+  }
+
+  // ── コメント ──
+  addComment(target: CommentTarget, text: string) {
+    const c: Comment = { id: uid(), target, text: text.trim(), createdAt: Date.now() };
+    this.comments = [...this.comments, c];
+    return c;
+  }
+  updateComment(id: string, text: string) {
+    this.comments = this.comments.map((c) => (c.id === id ? { ...c, text, updatedAt: Date.now() } : c));
+  }
+  deleteComment(id: string) {
+    this.comments = this.comments.filter((c) => c.id !== id);
+  }
+  commentsOf(target: CommentTarget) {
+    return this.commentsByTarget.get(commentKey(target)) ?? [];
   }
 
   // ── メディア ──
@@ -349,6 +379,7 @@ class AppStore {
     const m = migrate(p);
     this.labels = m.labels;
     this.excerpts = m.excerpts;
+    this.comments = p.comments ?? [];
     this.mediaMeta = { ...(p.mediaMeta ?? {}), ...this.mediaMeta };
     this.activeDocId = p.docs?.[0]?.id ?? null;
     this.selectedExcerptId = null;
@@ -365,6 +396,7 @@ class AppStore {
       docs: this.docs,
       labels: this.labels,
       excerpts: this.excerpts,
+      comments: this.comments,
       mediaMeta: this.mediaMeta,
     };
   }
@@ -374,6 +406,7 @@ class AppStore {
     this.docs = [];
     this.labels = [];
     this.excerpts = [];
+    this.comments = [];
     this.mediaMeta = {};
     this.tracks = [];
     this.activeDocId = null;

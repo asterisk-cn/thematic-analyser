@@ -46,6 +46,19 @@ export interface Excerpt {
   createdAt: number;
 }
 
+/** コメントを付ける対象：書き起こしの 1 発話（行）、またはラベル */
+export type CommentTarget = { kind: 'segment'; docId: string; seg: number } | { kind: 'label'; labelId: string };
+
+export interface Comment {
+  id: string;
+  target: CommentTarget;
+  text: string;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export const commentKey = (t: CommentTarget) => (t.kind === 'segment' ? `s:${t.docId}:${t.seg}` : `l:${t.labelId}`);
+
 export interface MediaMeta {
   name: string;
   offset: number;
@@ -73,6 +86,7 @@ export interface ProjectFile {
   docs: TranscriptDoc[];
   labels: Label[];
   excerpts: Excerpt[];
+  comments?: Comment[];
   mediaMeta: Record<string, MediaMeta>;
 }
 
