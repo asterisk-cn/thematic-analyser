@@ -59,6 +59,12 @@ class AppStore {
   tracks = $state.raw<Track[]>([]);
   selectedExcerptId = $state<string | null>(null);
   focus = $state<Focus | null>(null);
+  /** 左のコメントタブで入力欄を開いている対象 */
+  commentTarget = $state.raw<CommentTarget | null>(null);
+  /** ラベル整理画面の左タブ */
+  boardLeftTab = $state<'pool' | 'comments'>('pool');
+  /** 画面下のメディアの帯を折りたたんでいるか */
+  mediaCollapsed = $state(false);
   /** ラベル整理ボードで複数選択中のコード（切片 ID）とラベル */
   selExcerpts = $state.raw<Set<string>>(new Set());
   selLabels = $state.raw<Set<string>>(new Set());
@@ -115,6 +121,7 @@ class AppStore {
             mediaMeta: this.mediaMeta,
             activeDocId: this.activeDocId,
             page: this.page,
+            mediaCollapsed: this.mediaCollapsed,
           },
           version: 0,
         });
@@ -144,6 +151,7 @@ class AppStore {
       this.mediaMeta = s.mediaMeta ?? {};
       this.activeDocId = s.activeDocId ?? null;
       this.page = s.page === 'label' ? 'label' : 'code';
+      this.mediaCollapsed = !!s.mediaCollapsed;
     } catch {
       /* 壊れた保存データは無視 */
     }
@@ -242,6 +250,11 @@ class AppStore {
   }
   deleteComment(id: string) {
     this.comments = this.comments.filter((c) => c.id !== id);
+  }
+  /** 対象のコメント欄を左のタブで開く */
+  openComments(target: CommentTarget) {
+    this.commentTarget = target;
+    if (target.kind === 'label') this.boardLeftTab = 'comments';
   }
   commentsOf(target: CommentTarget) {
     return this.commentsByTarget.get(commentKey(target)) ?? [];

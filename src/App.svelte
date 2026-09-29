@@ -3,7 +3,7 @@
   import { engine } from './lib/engine.svelte';
   import { openFiles } from './lib/files';
   import Header from './components/Header.svelte';
-  import MediaPanel from './components/MediaPanel.svelte';
+  import CodingLeft from './components/CodingLeft.svelte';
   import TranscriptView from './components/TranscriptView.svelte';
   import Sidebar from './components/Sidebar.svelte';
   import Timeline from './components/Timeline.svelte';
@@ -65,7 +65,7 @@
   <Header />
   {#if store.page === 'code'}
     <main class="main">
-      <MediaPanel />
+      <CodingLeft />
       <TranscriptView />
       <Sidebar />
     </main>

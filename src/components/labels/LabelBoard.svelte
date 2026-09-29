@@ -8,6 +8,7 @@
   import BoardLabel from './BoardLabel.svelte';
   import ContextPanel from './ContextPanel.svelte';
   import DropZone from './DropZone.svelte';
+  import CommentsPanel from '../CommentsPanel.svelte';
 
   let q = $state('');
   let groupName = $state('');
@@ -34,6 +35,7 @@
     void q;
     poolLimit = POOL_PAGE;
   });
+  const labelComments = $derived(store.comments.filter((c) => c.target.kind === 'label').length);
   const looseTotal = $derived(store.excerpts.filter((e) => !e.labelId || !store.labelMap.has(e.labelId)).length);
 
   const nSel = $derived(store.selExcerpts.size + store.selLabels.size);
@@ -56,9 +58,22 @@
 
 <main class="board">
   <section class="panel pool-panel">
-    <div class="panel-head">
-      <h2>ラベル未付与のコード <em>{looseTotal}</em></h2>
+    <div class="left-tabs" role="tablist">
+      <button role="tab" aria-selected={store.boardLeftTab === 'pool'} class:on={store.boardLeftTab === 'pool'} onclick={() => (store.boardLeftTab = 'pool')}>
+        未付与のコード<em>{looseTotal}</em>
+      </button>
+      <button
+        role="tab"
+        aria-selected={store.boardLeftTab === 'comments'}
+        class:on={store.boardLeftTab === 'comments'}
+        onclick={() => (store.boardLeftTab = 'comments')}
+      >
+        コメント<em>{labelComments}</em>
+      </button>
     </div>
+    {#if store.boardLeftTab === 'comments'}
+      <div class="panel-body"><CommentsPanel mode="label" /></div>
+    {:else}
     <div class="pool-tools">
       <input type="search" placeholder="コード・切片を検索" bind:value={q} />
     </div>
@@ -84,6 +99,7 @@
         </button>
       {/if}
     </DropZone>
+    {/if}
   </section>
 
   <section class="panel tree-panel">

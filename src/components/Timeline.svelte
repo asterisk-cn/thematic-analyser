@@ -4,6 +4,7 @@
   import { excerptColor, excerptMatchesFocus, excerptTime } from '../lib/analysis';
   import { fmtTime } from '../lib/time';
   import type { Excerpt } from '../types';
+  import MediaStrip from './MediaStrip.svelte';
 
   const RATES = [0.5, 0.75, 1, 1.25, 1.5, 2];
   const STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600];
@@ -81,6 +82,7 @@
 </script>
 
 <section class="deck">
+  <MediaStrip />
   <div class="transport">
     <button class="t-btn" onclick={() => engine.seek(0)} title="先頭へ">⏮</button>
     <button class="t-btn" onclick={() => engine.nudge(-5)} title="5 秒戻る (←)">−5</button>

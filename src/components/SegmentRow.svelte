@@ -2,7 +2,6 @@
   import { highlightBackground, speakerColor, type Piece } from '../lib/analysis';
   import { fmtTime } from '../lib/time';
   import type { Excerpt, Label, Segment } from '../types';
-  import CommentThread from './CommentThread.svelte';
 
   let {
     seg,
@@ -13,10 +12,9 @@
     selectedExcerptId,
     onseek,
     onpick,
-    docId,
     commentCount,
-    commentOpen,
-    ontogglecomment,
+    commentActive,
+    oncomment,
   }: {
     seg: Segment;
     idx: number;
@@ -26,10 +24,9 @@
     selectedExcerptId: string | null;
     onseek: (idx: number) => void;
     onpick: (exIds: string[]) => void;
-    docId: string;
     commentCount: number;
-    commentOpen: boolean;
-    ontogglecomment: (idx: number) => void;
+    commentActive: boolean;
+    oncomment: (idx: number) => void;
   } = $props();
 </script>
 
@@ -41,8 +38,8 @@
     <button
       class="comment-btn"
       class:has={commentCount > 0}
-      class:open={commentOpen}
-      onclick={() => ontogglecomment(idx)}
+      class:open={commentActive}
+      onclick={() => oncomment(idx)}
       title={commentCount ? `コメント ${commentCount} 件` : 'コメントを付ける'}
       aria-label="コメント"
     >
@@ -57,11 +54,6 @@
     <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
     <span class="seg-text" data-seg-idx={idx}>{#each pieces as p, i (i)}{#if p.exIds.length || p.pending}<span class="hl" class:pending={p.pending} class:sel={!!selectedExcerptId && p.exIds.includes(selectedExcerptId)} style:background-image={highlightBackground(p.colors)} onclick={() => p.exIds.length && onpick(p.exIds)}>{p.text}</span>{:else}{p.text}{/if}{/each}</span>
   </div>
-  {#if commentOpen}
-    <div class="seg-thread">
-      <CommentThread target={{ kind: 'segment', docId, seg: idx }} onclose={() => ontogglecomment(idx)} />
-    </div>
-  {/if}
   <div class="seg-notes">
     {#each notes as { ex, label, path } (ex.id)}
       <button

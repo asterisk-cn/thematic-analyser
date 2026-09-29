@@ -2,7 +2,11 @@
   import { store } from '../store.svelte';
   import type { CommentTarget } from '../types';
 
-  let { target, onclose }: { target: CommentTarget; onclose?: () => void } = $props();
+  let {
+    target,
+    onclose,
+    compose = true,
+  }: { target: CommentTarget; onclose?: () => void; compose?: boolean } = $props();
 
   const comments = $derived(store.commentsOf(target));
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
@@ -10,9 +14,11 @@
   let draft = $state('');
   let editing = $state<string | null>(null);
   let editText = $state('');
-  let input: HTMLTextAreaElement;
+  let input: HTMLTextAreaElement | undefined = $state();
 
-  $effect(() => input?.focus({ preventScroll: true }));
+  $effect(() => {
+    if (compose) input?.focus({ preventScroll: true });
+  });
 
   function post() {
     if (!draft.trim()) return;
@@ -73,6 +79,7 @@
       {/if}
     </div>
   {/each}
+  {#if compose}
   <div class="comment-new">
     <textarea
       bind:this={input}
@@ -93,4 +100,5 @@
       <button class="btn btn-small btn-ink" onclick={post} disabled={!draft.trim()}>コメント</button>
     </div>
   </div>
+  {/if}
 </div>
