@@ -14,13 +14,15 @@
   } = $props();
 
   let code = $state('');
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
   let input: HTMLTextAreaElement;
 
   $effect(() => input.focus({ preventScroll: true }));
 
   function onKey(e: KeyboardEvent) {
     if (e.key === 'Escape') onclose();
-    else if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+    // ⌘+Enter（Windows などでは Ctrl+Enter）で作成。Enter だけなら改行
+    else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.isComposing) {
       e.preventDefault();
       onapply(code.trim());
     }
@@ -59,7 +61,7 @@
   </label>
 
   <div class="pop-foot">
-    <span class="pop-hint"><kbd>Enter</kbd> 作成　<kbd>Shift</kbd>+<kbd>Enter</kbd> 改行　<kbd>Esc</kbd> 取消</span>
+    <span class="pop-hint"><kbd>{isMac ? '⌘' : 'Ctrl'}</kbd>+<kbd>Enter</kbd> 作成　<kbd>Esc</kbd> 取消</span>
     <button class="btn btn-small btn-ink" onclick={() => onapply(code.trim())}>切片を作成</button>
   </div>
 </div>
